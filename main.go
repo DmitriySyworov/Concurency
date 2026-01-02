@@ -16,9 +16,9 @@ func main() {
 		fmt.Print(res, " ")
 	}
 }
-func generateRandom(ch chan int) {
+func generateRandom(chn chan int) {
 	for i := 0; i < 10; i++ {
-		ch <- rand.Intn(100)
+		chn <- rand.Intn(100)
 	}
 }
 func powerRand(rand int, ch chan int) {
