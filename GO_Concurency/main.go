@@ -15,6 +15,8 @@ func main() {
 		res := <-chRes
 		fmt.Print(res, " ")
 	}
+	close(chRand)
+	close(chRes)
 }
 func generateRandom(chn chan int) {
 	for i := 0; i < 10; i++ {
