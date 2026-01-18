@@ -40,7 +40,7 @@ func (vr *VerifyHandler) Send() http.HandlerFunc {
 		e.To = []string{resVerify.Email}
 		e.Subject = "Verification message"
 		e.Text = []byte(resVerify.Hash)
-		e.HTML = []byte(fmt.Sprintf(`<a href="http://localhost:8081/verify/"> Укажите после verify/ переданные вам случайные символы: %s </a>`, resVerify.Hash))
+		e.HTML = []byte(fmt.Sprintf(`<a href="http://localhost:8081/verify/%s"> Кликните, чтобы подтвердить вход в аккаунт</a>`, resVerify.Hash))
 		errSend := e.Send(vr.Conf.AddressHost, smtp.PlainAuth("", vr.Conf.EmailApi, vr.Conf.Password, vr.Conf.Address))
 		if errSend != nil {
 			responsejs.RespJs(w, payload.NewResponseSend(errSend), http.StatusInternalServerError)

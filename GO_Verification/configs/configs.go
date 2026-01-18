@@ -20,9 +20,9 @@ func LoadEnv()*Configs{
 		log.Fatal("could not read .env file, verification email could not be sent")
 	}
 	return &Configs{
-		EmailApi: os.Getenv("email"),
-		Password: os.Getenv("password"),
-		Address: os.Getenv("address"),
-		AddressHost: os.Getenv("addresshost"),
+		EmailApi: os.Getenv("EMAIL"),
+		Password: os.Getenv("PASSWORD"),
+		Address: os.Getenv("ADDRESS"),
+		AddressHost: os.Getenv("ADDRESS_HOST"),
 	}
 }
