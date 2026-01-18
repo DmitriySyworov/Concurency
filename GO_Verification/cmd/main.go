@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"net/http"
 	"verif/app/configs"
 	"verif/app/internal/handlers/verify"
@@ -9,10 +8,8 @@ import (
 
 func main() {
 	conf := configs.LoadEnv()
-	email := flag.String("email", "", "enter your email")
-	flag.Parse()
 	router := http.NewServeMux()
-	verify.NewVeryHandler(router, *email, verify.VerifyDep{Configs: *conf})
+	verify.NewVeryHandler(router, verify.VerifyDep{Configs: *conf})
 	server := http.Server{
 		Addr:    ":8081",
 		Handler: router,

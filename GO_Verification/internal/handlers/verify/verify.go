@@ -2,24 +2,26 @@ package verify
 
 import (
 	"fmt"
-	"math/rand/v2"
 	"net/http"
 	"net/smtp"
 	"verif/app/configs"
+	"verif/app/internal/payload"
+	"verif/app/internal/service/file"
+	requesthandl "verif/app/pkg/requestHandl"
+	responsejs "verif/app/pkg/responseJS"
 
 	"github.com/jordan-wright/email"
 )
 
 type VerifyHandler struct {
-	Email string`json:"email"`
 	Conf VerifyDep
 }
-type VerifyDep struct{
+type VerifyDep struct {
 	configs.Configs
 }
-func NewVeryHandler(router *http.ServeMux, email string, conf VerifyDep) {
+
+func NewVeryHandler(router *http.ServeMux, conf VerifyDep) {
 	verify := &VerifyHandler{
-		Email: email,
 		Conf: conf,
 	}
 	router.HandleFunc("POST /send", verify.Send())
@@ -27,35 +29,38 @@ func NewVeryHandler(router *http.ServeMux, email string, conf VerifyDep) {
 }
 func (vr *VerifyHandler) Send() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ver, errVer := requesthandl.RequestHandle[payload.Verification](w, r)
+		if errVer != nil {
+			responsejs.RespJs(w, payload.NewResponseSend(errVer), http.StatusBadRequest)
+			return
+		}
+		resVerify := payload.NewVerification(ver.Email)
 		e := email.NewEmail()
-		e.To = []string{vr.Email}
+		e.From = vr.Conf.EmailApi
+		e.To = []string{resVerify.Email}
 		e.Subject = "Verification message"
-		e.Text = generateLetter()
+		e.Text = []byte(resVerify.Hash)
+		e.HTML = []byte(fmt.Sprintf(`<a href="http://localhost:8081/verify/"> Укажите после verify/ переданные вам случайные символы: %s </a>`, resVerify.Hash))
 		errSend := e.Send(vr.Conf.AddressHost, smtp.PlainAuth("", vr.Conf.EmailApi, vr.Conf.Password, vr.Conf.Address))
-		if errSend != nil{
-			w.Header().Set("Content-type", "application/json")
-			w.WriteHeader(500)
-			fmt.Fprint(w, errSend)
-			return 
+		if errSend != nil {
+			responsejs.RespJs(w, payload.NewResponseSend(errSend), http.StatusInternalServerError)
+			return
 		}
-		w.Header().Set("Content-type", "application/json")
-		w.WriteHeader(201)
-		fmt.Fprintln(w, "The letter was sent successfully")
-	}
-}
-func generateLetter() []byte {
-	i := 0
-	resLetter := make([]byte, 9)
-	for 9 > i {
-		randomNum := rand.IntN(58)
-		if randomNum > 47 {
-			resLetter = append(resLetter, byte(randomNum))
-			i++
+		errCreate := file.CreateJsFile(resVerify)
+		if errCreate != nil {
+			responsejs.RespJs(w, payload.NewResponseSend(errCreate), http.StatusInternalServerError)
 		}
+		responsejs.RespJs(w, payload.NewResponseSend(nil), http.StatusCreated)
 	}
-	return resLetter
 }
 func (vr *VerifyHandler) Verify() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		hash := r.PathValue("hash")
+		errhash := file.CheckHash(hash)
+		if errhash != nil{
+			responsejs.RespJs(w, payload.NewResponseVerify(errhash), http.StatusBadRequest)
+			return
+		}
+		responsejs.RespJs(w, payload.NewResponseVerify(nil), http.StatusOK)
 	}
 }
