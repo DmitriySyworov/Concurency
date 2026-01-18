@@ -1,0 +1,15 @@
+meta {
+  name: Verify Email
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:8081/verify/{hash}
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}
