@@ -10,7 +10,7 @@ import (
 type Db struct{
 	*gorm.DB
 }
-func NewDb(conf configs.Config)*Db{
+func NewDb(conf *configs.Config)*Db{
 db, errDb := gorm.Open(postgres.Open(conf.Dsn))
 if errDb != nil {
 	panic(errDb)
