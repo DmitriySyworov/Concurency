@@ -5,6 +5,7 @@ import (
 	"order/app/configs"
 	"order/app/internal/product"
 	"order/app/pkg/db"
+	"order/app/pkg/middleware"
 )
 
 func main(){
@@ -13,9 +14,13 @@ func main(){
 	Db := product.NewProductRepository(DbConnect)
 	router := http.NewServeMux()
 	product.NewProductHandler(router, product.ProductHandlerDep{ProductRepository: Db})
+	stack := middleware.Chain(
+		middleware.CORS,
+		middleware.Logging,
+	)
 	server := http.Server{
 		Addr: ":8081",
-		Handler: router,
+		Handler: stack(router),
 	}
 	errApi := server.ListenAndServe()
 	if errApi != nil {

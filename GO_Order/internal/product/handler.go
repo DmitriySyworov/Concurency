@@ -21,7 +21,7 @@ func NewProductHandler(router *http.ServeMux, setting ProductHandlerDep) {
 	router.HandleFunc("POST /product", prod.CreateProduct())
 	router.HandleFunc("PATCH /product/{hash}", prod.UpdateProduct())
 	router.HandleFunc("GET /product/{hash}", prod.GetProduct())
-	router.HandleFunc("GET /product/all/{category}", prod.AllProduct())
+	router.HandleFunc("GET /product", prod.AllProduct())
 	router.HandleFunc("DELETE /product/{hash}", prod.DeleteProduct())
 }
 func (ph *ProductHandler) CreateProduct() http.HandlerFunc {
@@ -52,7 +52,7 @@ func (ph *ProductHandler) UpdateProduct() http.HandlerFunc {
 			response.RespJs(w, ph.Product, http.StatusNotFound)
 			return
 		}
-		body, errReq := request.RequestHandler[RequestProductCreate](w, r)
+		body, errReq := request.RequestHandler[RequestProductUpdate](w, r)
 		if errReq != nil {
 			ph.Product.Error = errReq.Error()
 			response.RespJs(w, ph.Product, http.StatusBadRequest)
@@ -98,12 +98,12 @@ func (ph *ProductHandler) DeleteProduct() http.HandlerFunc {
 			response.RespJs(w, ph.Product, http.StatusInternalServerError)
 			return
 		}
-		response.RespJs(w, nil, http.StatusOK)
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 func (ph *ProductHandler) AllProduct() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		category := r.PathValue("category")
+		category := r.URL.Query().Get("category")
 		sliceProduct, errAll := ph.GetAll(category)
 		if errAll != nil {
 			ph.Product.Error = errAll.Error()
@@ -120,17 +120,3 @@ func (ph *ProductHandler) AllProduct() http.HandlerFunc {
 		response.RespJs(w, payload, http.StatusOK)
 	}
 }
-
-// func (ph *ProductHandler)uniquenessCheck(product *Product)error{
-// sliceProd, errProd := ph.GetAll()
-// if errProd != nil {
-// 	return errProd
-// }
-// for _, productDb := range *sliceProd{
-// 	if productDb.Name == product.Name{
-// 		return errors.New("")
-// 	}
-// 	// if productDb.
-// }
-// return nil
-// }
