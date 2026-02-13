@@ -13,7 +13,7 @@ type Product struct {
 	Description string`json:"description" gorm:"not null"`
 	Images      pq.StringArray`json:"image" gorm:"type:text[];not null"`
 	Category string`json:"category" gorm:"not null"`
-	Hash string`json:"hash" gorm:"not null"`
+	Hash string`json:"hash" gorm:"not null;uniqueIndex:idx_hash"`
 	Error string`json:"error" gorm:"-"`
 }
 func NewProduct(name, description, category, hash string, image []string)*Product{

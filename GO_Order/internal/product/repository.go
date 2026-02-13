@@ -44,11 +44,11 @@ if result.Error != nil {
 }
 return nil
 }
-func (repo *ProductRepository)GetAll(category string)([]Product, error){
-	var sliceProduct []Product
-	result := repo.Database.DB.Where("category = ?", category).Find(&sliceProduct)
+func (repo *ProductRepository)GetAll(category string)(*ResponseSliceProduct, error){
+	var sliceProduct ResponseSliceProduct
+	result := repo.Database.DB.Where("category = ?", category).Find(&sliceProduct.CategoryProduct)
 	if result.Error != nil {
 		return nil, result.Error
 	}
-return sliceProduct, nil
+return &sliceProduct, nil
 }

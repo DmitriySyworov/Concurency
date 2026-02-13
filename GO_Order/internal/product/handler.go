@@ -11,112 +11,99 @@ type ProductHandler struct {
 	ProductHandlerDep
 }
 type ProductHandlerDep struct {
-	*ProductRepository
+	*ProductService
 }
 
 func NewProductHandler(router *http.ServeMux, setting ProductHandlerDep) {
 	prod := &ProductHandler{
 		ProductHandlerDep: setting,
 	}
-	router.HandleFunc("POST /product", prod.CreateProduct())
-	router.HandleFunc("PATCH /product/{hash}", prod.UpdateProduct())
-	router.HandleFunc("GET /product/{hash}", prod.GetProduct())
-	router.HandleFunc("GET /product", prod.AllProduct())
-	router.HandleFunc("DELETE /product/{hash}", prod.DeleteProduct())
+	router.HandleFunc("POST /product", prod.HandlerCreateProduct())
+	router.HandleFunc("PATCH /product/{hash}", prod.HandlerUpdateProduct())
+	router.HandleFunc("GET /product/{hash}", prod.HadlerGetProduct())
+	router.HandleFunc("GET /product", prod.HandlerAllProduct())
+	router.HandleFunc("DELETE /product/{hash}", prod.HandlerDeleteProduct())
 }
-func (ph *ProductHandler) CreateProduct() http.HandlerFunc {
+func (h *ProductHandler) HandlerCreateProduct() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, errReq := request.RequestHandler[RequestProductCreate](w, r)
 		if errReq != nil {
-			ph.Product.Error = errReq.Error()
-			response.RespJs(w, ph.Product, http.StatusBadRequest)
+			h.Product.Error = errReq.Error()
+			response.RespJs(w, h.Product, http.StatusBadRequest)
 			return
 		}
-		unuqHash := UniqueCheckHash(ph.GetByHash)
-		product := NewProduct(body.Name, body.Description, body.Category, unuqHash, body.Images)
-		errCreate := ph.Create(product)
+		product, errCreate := h.ServiceCreate(body)
 		if errCreate != nil {
-			ph.Product.Error = errCreate.Error()
-			response.RespJs(w, ph.Product, http.StatusInternalServerError)
+			h.Product.Error = errCreate.Error()
+			response.RespJs(w, h.Product, http.StatusInternalServerError)
 			return
 		}
 		response.RespJs(w, product, http.StatusCreated)
 	}
 }
-func (ph *ProductHandler) UpdateProduct() http.HandlerFunc {
+func (h *ProductHandler) HandlerUpdateProduct() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		hash := r.PathValue("hash")
-		record, errGet := ph.GetByHash(hash)
-		if errGet != nil {
-			ph.Product.Error = errGet.Error()
-			response.RespJs(w, ph.Product, http.StatusNotFound)
-			return
-		}
 		body, errReq := request.RequestHandler[RequestProductUpdate](w, r)
 		if errReq != nil {
-			ph.Product.Error = errReq.Error()
-			response.RespJs(w, ph.Product, http.StatusBadRequest)
+			h.Product.Error = errReq.Error()
+			response.RespJs(w, h.Product, http.StatusBadRequest)
 			return
 		}
-		record.Name = body.Name
-		record.Images = body.Images
-		record.Category = body.Category
-		record.Description = body.Description
-		resProd, errUpdate := ph.Update(record)
+		hash := r.PathValue("hash")
+		resProd, errUpdate := h.ServiceUpdate(body, hash)
 		if errUpdate != nil {
-			ph.Product.Error = errUpdate.Error()
-			response.RespJs(w, ph.Product, http.StatusBadRequest)
+			h.Product.Error = errUpdate.Error()
+			if errUpdate == ErrNotFoundProduct {
+				response.RespJs(w, h.Product, http.StatusNotFound)
+			} else {
+				response.RespJs(w, h.Product, http.StatusInternalServerError)
+			}
 			return
 		}
 		response.RespJs(w, resProd, http.StatusCreated)
 	}
 }
-func (ph *ProductHandler) GetProduct() http.HandlerFunc {
+func (h *ProductHandler) HadlerGetProduct() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		hash := r.PathValue("hash")
-		record, errGet := ph.GetByHash(hash)
+		record, errGet := h.GetByHash(hash)
 		if errGet != nil {
-			ph.Product.Error = errGet.Error()
-			response.RespJs(w, ph.Product, http.StatusNotFound)
+			h.Product.Error = ErrNotFoundProduct.Error()
+			response.RespJs(w, h.Product, http.StatusNotFound)
 			return
 		}
 		response.RespJs(w, record, http.StatusOK)
 	}
 }
-func (ph *ProductHandler) DeleteProduct() http.HandlerFunc {
+func (h *ProductHandler) HandlerDeleteProduct() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		hash := r.PathValue("hash")
-		_, errGet := ph.GetByHash(hash)
-		if errGet != nil {
-			ph.Product.Error = errGet.Error()
-			response.RespJs(w, ph.Product, http.StatusNotFound)
-			return
-		}
-		errDel := ph.Delete(hash)
+		errDel := h.ServiceDelete(hash)
 		if errDel != nil {
-			ph.Product.Error = errDel.Error()
-			response.RespJs(w, ph.Product, http.StatusInternalServerError)
+			h.Product.Error = errDel.Error()
+			if errDel == ErrNotFoundProduct {
+				response.RespJs(w, h.Product, http.StatusNotFound)
+			} else {
+				response.RespJs(w, h.Product, http.StatusInternalServerError)
+			}
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
-func (ph *ProductHandler) AllProduct() http.HandlerFunc {
+func (h *ProductHandler) HandlerAllProduct() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		category := r.URL.Query().Get("category")
-		sliceProduct, errAll := ph.GetAll(category)
-		if errAll != nil {
-			ph.Product.Error = errAll.Error()
-			response.RespJs(w, ph.Product, http.StatusInternalServerError)
+		categoruProducts, errCategory := h.ServiceAllProduct(category)
+		if errCategory != nil {
+			h.Product.Error = errCategory.Error()
+			if errCategory == ErrNotCategoryProduct {
+				response.RespJs(w, h.Product, http.StatusNotFound)
+			} else {
+				response.RespJs(w, h.Product, http.StatusInternalServerError)
+			}
 			return
 		}
-		if len(sliceProduct) < 1 {
-			ph.Product.Error = "There are no products in this category"
-			response.RespJs(w, ph.Product, http.StatusNotFound)
-			return
-		}
-		var payload ResponseSliceProduct
-		payload.CategoryProduct = sliceProduct
-		response.RespJs(w, payload, http.StatusOK)
+		response.RespJs(w, categoruProducts, http.StatusOK)
 	}
 }

@@ -18,7 +18,7 @@ func Logging(next http.Handler) http.Handler {
 		logger := logrus.New()
 		logger.SetFormatter(&logrus.JSONFormatter{})
 		logger.WithFields(logrus.Fields{
-			"leadTime":      time.Since(start).String(),
+			"leadTime":   time.Since(start).String(),
 			"statusCode": wrapper.Status,
 			"method":     r.Method,
 			"path":       r.URL.Path,

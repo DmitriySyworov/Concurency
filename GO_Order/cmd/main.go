@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"order/app/configs"
 	"order/app/internal/product"
+	"order/app/internal/user"
 	"order/app/pkg/db"
 	"order/app/pkg/middleware"
 )
@@ -11,9 +12,11 @@ import (
 func main(){
 	conf := configs.NewConfig()
 	DbConnect := db.NewDb(conf)
-	Db := product.NewProductRepository(DbConnect)
 	router := http.NewServeMux()
-	product.NewProductHandler(router, product.ProductHandlerDep{ProductRepository: Db})
+	productService := product.NewProductService(product.NewProductRepository(DbConnect))
+	userService := user.NewUserService(user.NewUserRepository(DbConnect), []byte(conf.Secret))
+	product.NewProductHandler(router, product.ProductHandlerDep{ProductService: productService})
+	user.NewUserHandler(router, &user.UserHandlerDep{UserService: userService})
 	stack := middleware.Chain(
 		middleware.CORS,
 		middleware.Logging,

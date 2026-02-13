@@ -8,9 +8,13 @@ import (
 
 type Config struct {
 	*Db
+	*Auth
 }
 type Db struct {
 	Dsn string
+}
+type Auth struct{
+	Secret string
 }
 
 func NewConfig() *Config{
@@ -21,6 +25,9 @@ func NewConfig() *Config{
 	return &Config{
 		Db: &Db{
 			Dsn: os.Getenv("DSN"),
+		},
+		Auth: &Auth{
+			Secret: os.Getenv("SECRET"),
 		},
 	}
 }
