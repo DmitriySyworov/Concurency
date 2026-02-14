@@ -14,3 +14,15 @@ func RandStr(lenght int) string {
 	}
 	return randStr
 }
+func RandSessPassword(lenght int) string{
+	randStr := ""
+	i := 0
+	for lenght > i {
+		randomer := rand.IntN(123)
+		if randomer > 47 && randomer < 58{
+			randStr += string(byte(randomer))
+			i++
+		}
+	}
+	return randStr
+}

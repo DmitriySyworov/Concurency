@@ -46,7 +46,7 @@ func (r *UserRepository) GetSession(sessId string) (Session, error) {
 	var sess Session
 	r.DB.Where("expires_at < ?", time.Now()).Delete(&Session{})
 	resultGet := r.DB.Where("session_id = ?", sessId).First(&sess)
-	if resultGet != nil {
+	if resultGet.Error != nil {
 		return sess, resultGet.Error
 	}
 	r.DB.Where("session_id = ?", sessId).Delete(&Session{})

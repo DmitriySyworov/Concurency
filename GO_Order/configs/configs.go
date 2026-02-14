@@ -9,12 +9,19 @@ import (
 type Config struct {
 	*Db
 	*Auth
+	*VerifyEmail
 }
 type Db struct {
 	Dsn string
 }
 type Auth struct{
-	Secret string
+	Secret []byte
+}
+type VerifyEmail struct{
+	EmailApi string
+	PasswordApi string
+	AddressHost string
+	Address string
 }
 
 func NewConfig() *Config{
@@ -27,7 +34,13 @@ func NewConfig() *Config{
 			Dsn: os.Getenv("DSN"),
 		},
 		Auth: &Auth{
-			Secret: os.Getenv("SECRET"),
+			Secret: []byte(os.Getenv("SECRET")),
+		},
+		VerifyEmail: &VerifyEmail{
+			PasswordApi: os.Getenv("PASSWORD"),
+			EmailApi: os.Getenv("EMAIL"),
+			AddressHost: os.Getenv("ADDRESS_HOST"),
+			Address: os.Getenv("ADDRESS"),
 		},
 	}
 }

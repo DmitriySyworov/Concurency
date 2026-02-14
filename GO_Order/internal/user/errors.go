@@ -5,6 +5,8 @@ var (
 	ErrSecurity = errors.New("failed to ensure the security of data transmission")
 
 	ErrSess = errors.New("the authorization session has expired or is not valid")
+	
+	ErrSendEmail = errors.New("we were unable to send an email to the specified email address")
 
 	ErrMissing = errors.New("the required data has not been transmitted")
 	ErrMethod = errors.New("there is no such authorization method")

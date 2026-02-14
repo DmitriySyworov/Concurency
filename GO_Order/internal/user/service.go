@@ -2,6 +2,7 @@ package user
 
 import (
 	"fmt"
+	"order/app/configs"
 	generaterand "order/app/pkg/generateRand"
 	jwts "order/app/pkg/jwt"
 	"strings"
@@ -12,13 +13,13 @@ import (
 
 type UserService struct {
 	*UserRepository
-	Secret []byte
+	*configs.Config
 }
 
-func NewUserService(repo *UserRepository, secret []byte) *UserService {
+func NewUserService(repo *UserRepository, conf *configs.Config) *UserService {
 	return &UserService{
 		UserRepository: repo,
-		Secret:         secret,
+		Config: conf,
 	}
 }
 
@@ -58,7 +59,7 @@ func (s *UserService) Login(body *RequestUserLogin) (*User, error) {
 }
 func (s *UserService) Auth(method, userToken string) (*ResponseAuth, error) {
 	sessID := generaterand.RandStr(10)
-	tempPass := generaterand.RandStr(6)
+	tempPass := generaterand.RandSessPassword(9)
 	session := &Session{
 		SessionId:    sessID,
 		TempPassword: tempPass,
@@ -76,12 +77,16 @@ func (s *UserService) Auth(method, userToken string) (*ResponseAuth, error) {
 		}
 		return &ResponseAuth{
 			SessionId: sessID,
-			Message:   fmt.Sprintf("we sent an email with a password to the specified phone number: %s", user.Phone),
+			Message:   fmt.Sprintf("we sent an email with a password to the specified phone number: %s", user.Phone)+fmt.Sprint("    Это имитация отправки через телефон кода:", tempPass),
 		}, nil
 	case "email":
 		errSess := s.Session(session)
 		if errSess != nil {
 			return nil, ErrSecurity
+		}
+		errSend := Send(s.Config.VerifyEmail, user.Email, tempPass)
+		if errSend != nil {
+			return nil, errSend
 		}
 		return &ResponseAuth{
 			SessionId: sessID,
