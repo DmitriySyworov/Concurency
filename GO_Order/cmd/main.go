@@ -15,7 +15,7 @@ func main(){
 	router := http.NewServeMux()
 	productService := product.NewProductService(product.NewProductRepository(DbConnect))
 	userService := user.NewUserService(user.NewUserRepository(DbConnect),  conf)
-	product.NewProductHandler(router, product.ProductHandlerDep{ProductService: productService})
+	product.NewProductHandler(router, product.ProductHandlerDep{ProductService: productService, Config: conf})
 	user.NewUserHandler(router, &user.UserHandlerDep{UserService: userService})
 	stack := middleware.Chain(
 		middleware.CORS,

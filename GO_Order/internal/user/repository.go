@@ -15,15 +15,19 @@ func NewUserRepository(database *db.Db) *UserRepository {
 	}
 }
 
-func (r *UserRepository) CreateUser(user *User) error{
+func (r *UserRepository) CreateUser(user *User) error {
 	result := r.DB.Create(&user)
 	if result.Error != nil {
 		return result.Error
 	}
 	return nil
 }
-
-func (r *UserRepository) GetUser(email, phone string) (*User, error) {
+func (r *UserRepository) GetByIdUser(idUser string) error {
+	var user User
+	res := r.Db.Where("id_user = ?", idUser).First(&user)
+	return res.Error
+}
+func (r *UserRepository) GetByEmailOrPhone(email, phone string) (*User, error) {
 	var user User
 	resEm := r.DB.Where("email = ?", email).First(&user)
 	resPh := r.DB.Where("phone = ?", phone).First(&user)
@@ -34,6 +38,23 @@ func (r *UserRepository) GetUser(email, phone string) (*User, error) {
 		return &user, nil
 	}
 	return nil, resEm.Error
+}
+func (r *UserRepository) CreateTempUser(tempUser *TempUser) error {
+	result := r.DB.Create(&tempUser)
+	if result.Error != nil {
+		return result.Error
+	}
+	return nil
+}
+func (r *UserRepository) GetTempUser(email, phone string) (*TempUser, error) {
+	var tempUser TempUser
+	r.DB.Where("expires_at < ?", time.Now()).Delete(&Session{})
+	r.DB.Where("expires_at < ?", time.Now()).Delete(&TempUser{})
+	res := r.DB.Where("email = ? OR phone = ?", email, phone).First(&tempUser)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return &tempUser, nil
 }
 func (r *UserRepository) Session(sess *Session) error {
 	result := r.DB.Create(&sess)

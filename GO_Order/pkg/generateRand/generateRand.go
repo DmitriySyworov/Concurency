@@ -2,10 +2,10 @@ package generaterand
 
 import "math/rand/v2"
 
-func RandStr(lenght int) string {
+func RandStr(length int) string {
 	randStr := ""
 	i := 0
-	for lenght > i {
+	for length > i {
 		randomer := rand.IntN(123)
 		if (randomer > 47 && randomer < 58) || (randomer > 64 && randomer < 91) || (randomer > 96) {
 			randStr += string(byte(randomer))
@@ -14,12 +14,12 @@ func RandStr(lenght int) string {
 	}
 	return randStr
 }
-func RandSessPassword(lenght int) string{
+func RandNumberStr(length int) string {
 	randStr := ""
 	i := 0
-	for lenght > i {
+	for length > i {
 		randomer := rand.IntN(123)
-		if randomer > 47 && randomer < 58{
+		if randomer > 47 && randomer < 58 {
 			randStr += string(byte(randomer))
 			i++
 		}

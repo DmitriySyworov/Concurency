@@ -15,7 +15,7 @@ func main() {
 	if errDb != nil {
 		panic(errDb)
 	}
-	errMigrate := db.AutoMigrate(&product.Product{}, &user.User{}, &user.Session{})
+	errMigrate := db.AutoMigrate(&product.Product{}, &user.User{}, &user.Session{}, &user.TempUser{})
 	if errMigrate != nil {
 		panic(errMigrate)
 	}

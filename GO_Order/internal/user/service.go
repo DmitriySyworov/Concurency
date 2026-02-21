@@ -19,30 +19,48 @@ type UserService struct {
 func NewUserService(repo *UserRepository, conf *configs.Config) *UserService {
 	return &UserService{
 		UserRepository: repo,
-		Config: conf,
+		Config:         conf,
 	}
 }
 
-func (s *UserService) Register(body *RequestUserRegist) (*User, error) {
+func (s *UserService) Register(body *RequestUserRegist) (*TempUser, error) {
+	_, errReg := s.GetByEmailOrPhone(body.Email, body.Phone)
+	if errReg == nil {
+		return nil, ErrReg
+	}
 	hashPass, errPass := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
 	if errPass != nil {
 		return nil, ErrSecurity
 	}
-	user := &User{
-		Name:     body.Name,
-		Email:    body.Email,
-		Phone:    body.Phone,
-		Password: string(hashPass),
+	var idUser string
+	for {
+		idUser = generaterand.RandNumberStr(12)
+		errId := s.GetByIdUser(idUser)
+		if errId != nil {
+			break
+		}
 	}
-	jwtToken, errJwt := jwts.NewJWT(s.Secret).FastJWT(user)
+	tempUser := &TempUser{
+		Name:      body.Name,
+		Email:     body.Email,
+		Phone:     body.Phone,
+		Password:  string(hashPass),
+		IdUser:    idUser,
+		ExpiresAt: time.Now().Add(5 * time.Minute),
+	}
+	errTemppUser := s.CreateTempUser(tempUser)
+	if errTemppUser != nil {
+		return nil, errTemppUser
+	}
+	jwtToken, errJwt := jwts.NewJWT(s.Secret).TemporaryJWT(&jwts.DataJWt{Email: tempUser.Email, Phone: tempUser.Phone, IdUser: tempUser.IdUser})
 	if errJwt != nil {
 		return nil, errJwt
 	}
-	user.Jwt = jwtToken
-	return user, nil
+	tempUser.Jwt = jwtToken
+	return tempUser, nil
 }
-func (s *UserService) Login(body *RequestUserLogin) (*User, error) {
-	user, errGet := s.GetUser(body.Email, body.Phone)
+func (s *UserService) Login(body *RequestUserLogin) (*TempUser, error) {
+	user, errGet := s.GetByEmailOrPhone(body.Email, body.Phone)
 	if errGet != nil {
 		return nil, ErrWrongData
 	}
@@ -50,16 +68,28 @@ func (s *UserService) Login(body *RequestUserLogin) (*User, error) {
 	if errPass != nil {
 		return nil, ErrWrongData
 	}
-	jwtToken, errJwt := jwts.NewJWT(s.Secret).FastJWT(user)
+	tempUser := &TempUser{
+		Name:      user.Name,
+		Email:     user.Email,
+		Phone:     user.Phone,
+		Password:  user.Password,
+		IdUser:    user.IdUser,
+		ExpiresAt: time.Now().Add(5 * time.Minute),
+	}
+	errTemppUser := s.CreateTempUser(tempUser)
+	if errTemppUser != nil {
+		return nil, errTemppUser
+	}
+	jwtToken, errJwt := jwts.NewJWT(s.Secret).TemporaryJWT(&jwts.DataJWt{Email: tempUser.Email, Phone: tempUser.Phone, IdUser: tempUser.IdUser})
 	if errJwt != nil {
 		return nil, errJwt
 	}
-	user.Jwt = jwtToken
-	return user, nil
+	tempUser.Jwt = jwtToken
+	return tempUser, nil
 }
 func (s *UserService) Auth(method, userToken string) (*ResponseAuth, error) {
 	sessID := generaterand.RandStr(10)
-	tempPass := generaterand.RandSessPassword(9)
+	tempPass := generaterand.RandNumberStr(9)
 	session := &Session{
 		SessionId:    sessID,
 		TempPassword: tempPass,
@@ -77,7 +107,7 @@ func (s *UserService) Auth(method, userToken string) (*ResponseAuth, error) {
 		}
 		return &ResponseAuth{
 			SessionId: sessID,
-			Message:   fmt.Sprintf("we sent an email with a password to the specified phone number: %s", user.Phone)+fmt.Sprint("    Это имитация отправки через телефон кода:", tempPass),
+			Message:   fmt.Sprintf("we sent an email with a password to the specified phone number: %s", user.Phone) + fmt.Sprint("    Это имитация отправки через телефон кода:", tempPass),
 		}, nil
 	case "email":
 		errSess := s.Session(session)
@@ -109,6 +139,10 @@ func (s *UserService) Confirm(body *RequestConfirm, session, userToken, action s
 		if errCompare != nil {
 			return "", errCompare
 		}
+		_, errRegist := s.GetByEmailOrPhone(user.Email, user.Phone)
+		if errRegist == nil {
+			return "", ErrReg
+		}
 		errCreate := s.CreateUser(user)
 		if errCreate != nil {
 			return "", ErrCreateUser
@@ -130,27 +164,32 @@ func (s *UserService) compareSession(body *RequestConfirm, session, userToken st
 	if errAssearch != nil {
 		return nil, "", errAssearch
 	}
-	jwtToken, errToken := jwts.NewJWT(s.Secret).CreateJWT(user.Email, user.Phone)
+	jwtToken, errToken := jwts.NewJWT(s.Secret).CreateJWT(&jwts.DataJWt{IdUser: user.IdUser})
 	if errToken != nil {
 		return nil, "", errToken
 	}
 	return user, jwtToken, nil
 }
 func (s *UserService) assearchUser(userToken string) (*User, error) {
-	usToken, errJwt := jwts.NewJWT(s.Secret).DecodeJWT(strings.TrimPrefix(userToken, "Bearer "))
+	usJwt, errJwt := jwts.NewJWT(s.Secret).DecodeJWT(strings.TrimPrefix(userToken, "Bearer "))
 	if errJwt != nil {
 		return nil, errJwt
 	}
-	data := usToken["user"]
-	var user *User
-	switch u := data.(type) {
-	case map[string]any:
-		user = &User{
-			Email:    u["email"].(string),
-			Phone:    u["phone"].(string),
-			Password: u["password"].(string),
-			Name:     u["name"].(string),
-		}
+	var userJwt TempJWTUser
+	userJwt = TempJWTUser{
+		Email: usJwt.Email,
+		Phone: usJwt.Phone,
 	}
-	return user, nil
+	user, errGet := s.GetTempUser(userJwt.Email, userJwt.Phone)
+	if errGet != nil {
+		return nil, errGet
+	}
+	resUser := &User{
+		Name:     user.Name,
+		Email:    user.Email,
+		Password: user.Password,
+		Phone:    user.Phone,
+		IdUser:   user.IdUser,
+	}
+	return resUser, nil
 }
