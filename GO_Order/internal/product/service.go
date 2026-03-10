@@ -58,7 +58,7 @@ func (s *ProductService) DeleteProduct(hash string, idUser int) error {
 	if errGet != nil {
 		return ErrNotFoundProduct
 	}
-	errDel := s.DeleteProduct(hash, idUser)
+	errDel := s.Repo.DeleteProduct(hash, idUser)
 	if errDel != nil {
 		return ErrNotDeleteProduct
 	}

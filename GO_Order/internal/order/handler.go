@@ -38,7 +38,7 @@ func (ho *HandlerOrder) CreateOrder() http.HandlerFunc {
 			return
 		}
 		body, errBody := request.RequestHandler[CreateOrderRequest](r)
-		if errBody != nil {
+		if errBody != nil || len(body.ProductsHash) == 0 {
 			ho.Order.Error = errBody.Error()
 			response.RespJs(writer, ho.Order, http.StatusBadRequest)
 		}
