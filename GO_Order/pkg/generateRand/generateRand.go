@@ -1,6 +1,9 @@
 package generaterand
 
-import "math/rand/v2"
+import (
+	"math/rand/v2"
+	"strconv"
+)
 
 func RandStr(length int) string {
 	randStr := ""
@@ -14,15 +17,16 @@ func RandStr(length int) string {
 	}
 	return randStr
 }
-func RandNumberStr(length int) string {
+func RandNumber(length int) int {
 	randStr := ""
 	i := 0
 	for length > i {
-		randomer := rand.IntN(123)
-		if randomer > 47 && randomer < 58 {
+		randomer := rand.IntN(58)
+		if randomer > 48 {
 			randStr += string(byte(randomer))
 			i++
 		}
 	}
-	return randStr
+	resRand, _ := strconv.Atoi(randStr)
+	return resRand
 }

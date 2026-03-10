@@ -12,8 +12,7 @@ type JWT struct {
 }
 type DataJWt struct {
 	Email  string
-	Phone  string
-	IdUser string
+	IdUser float64
 }
 
 func NewJWT(secret []byte) *JWT {
@@ -23,14 +22,11 @@ func NewJWT(secret []byte) *JWT {
 }
 func (j *JWT) CreateJWT(data *DataJWt) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email":     data.Email,
-		"phone":     data.Phone,
-		"id_user":   data.IdUser,
-		"temporary": false,
+		"id_user": data.IdUser,
 	})
 	resJWT, errToken := token.SignedString(j.Secret)
 	if errToken != nil {
-		return "", errToken
+		return "", custerrors.ErrCreateToken
 	}
 	return resJWT, nil
 }
@@ -38,18 +34,27 @@ func (j *JWT) CreateJWT(data *DataJWt) (string, error) {
 func (j *JWT) TemporaryJWT(data *DataJWt) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"email":     data.Email,
-		"phone":     data.Phone,
-		"id_user":   data.IdUser,
-		"temporary": true,
 		"ExpiresAt": time.Now().Add(5 * time.Minute).Unix(),
 	})
 	resJWT, errToken := token.SignedString(j.Secret)
 	if errToken != nil {
-		return "", errToken
+		return "", custerrors.ErrCreateToken
 	}
 	return resJWT, nil
 }
-func (j *JWT) DecodeJWT(tokenUs string) (*DataJWt, error) {
+func (j *JWT) ParseJWT(tokenUs string) (*DataJWt, error) {
+	token, errToken := jwt.Parse(tokenUs, func(t *jwt.Token) (any, error) {
+		return j.Secret, nil
+	})
+	if errToken != nil || !token.Valid {
+		return nil, custerrors.ErrInvalidToken
+	}
+	if id, okId := token.Claims.(jwt.MapClaims)["id_user"].(float64); okId {
+		return &DataJWt{IdUser: id}, nil
+	}
+	return nil, custerrors.ErrInvalidToken
+}
+func (j *JWT) ParseTemporaryJWT(tokenUs string) (*DataJWt, error) {
 	token, errToken := jwt.Parse(tokenUs, func(t *jwt.Token) (any, error) {
 		return j.Secret, nil
 	})
@@ -57,13 +62,8 @@ func (j *JWT) DecodeJWT(tokenUs string) (*DataJWt, error) {
 		return nil, custerrors.ErrInvalidToken
 	}
 	email, okEm := token.Claims.(jwt.MapClaims)["email"].(string)
-	phone, okPh := token.Claims.(jwt.MapClaims)["phone"].(string)
-	id, okId := token.Claims.(jwt.MapClaims)["id_user"].(string)
-	if !okId && okPh && okEm {
-		return &DataJWt{Email: email, Phone: phone}, nil
+	if !okEm {
+		return nil, custerrors.ErrInvalidToken
 	}
-	if okId && !okPh && !okEm {
-		return &DataJWt{IdUser: id}, nil
-	}
-	return &DataJWt{Email: email, Phone: phone, IdUser: id}, nil
+	return &DataJWt{Email: email}, nil
 }

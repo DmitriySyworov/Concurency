@@ -2,7 +2,7 @@ package main
 
 import (
 	"order/app/configs"
-	"order/app/internal/product"
+	"order/app/internal/common"
 	"order/app/internal/user"
 
 	"gorm.io/driver/postgres"
@@ -15,7 +15,7 @@ func main() {
 	if errDb != nil {
 		panic(errDb)
 	}
-	errMigrate := db.AutoMigrate(&product.Product{}, &user.User{}, &user.Session{}, &user.TempUser{})
+	errMigrate := db.AutoMigrate(&user.User{}, &common.Order{}, &common.Product{}, &user.Session{}, &user.TempUser{})
 	if errMigrate != nil {
 		panic(errMigrate)
 	}

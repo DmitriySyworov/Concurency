@@ -20,7 +20,7 @@ type ResponseAuth struct {
 	Error     string `json:"error"`
 }
 type RequestConfirm struct {
-	TempPassword string `json:"tempPassword"`
+	TempPassword int `json:"tempPassword"`
 }
 type ResponseConfirm struct {
 	Jwt   string `json:"jwt"`
@@ -29,6 +29,6 @@ type ResponseConfirm struct {
 type TempJWTUser struct {
 	Email     string    `json:"email"`
 	Phone     string    `json:"phone"`
-	Temporary bool`json:"temporary"`
+	Temporary bool      `json:"temporary"`
 	ExpiresAt time.Time `json:"ExpiresAr"`
 }

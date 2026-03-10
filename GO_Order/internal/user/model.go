@@ -1,6 +1,7 @@
 package user
 
 import (
+	"order/app/internal/common"
 	"time"
 
 	"gorm.io/gorm"
@@ -8,18 +9,20 @@ import (
 
 type User struct {
 	gorm.Model
-	Name     string `json:"name" gorm:"not null"`
-	Email    string `json:"email" gorm:"not null;uniqueIndex:idx_email"`
-	Phone    string `json:"phone" gorm:"not null;unique"`
-	Password string `json:"password" gorm:"not null"`
-	IdUser   string `json:"Id_User" gorm:"not null;uniqueIndex:idx_user"`
-	Jwt      string `json:"jwt" gorm:"-"`
-	Error    string `json:"error" gorm:"-"`
+	ID       uint           `gorm:"primaryKey"`
+	Name     string         `json:"name" gorm:"not null"`
+	Email    string         `json:"email" gorm:"not null;uniqueIndex:idx_email"`
+	Phone    string         `json:"phone" gorm:"not null;unique"`
+	Password string         `json:"password" gorm:"not null" `
+	Orders   []common.Order `gorm:"foreignKey:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	UserId   int            `json:"user_id" gorm:"not null;uniqueIndex:user_idx"`
+	Jwt      string         `json:"jwt" gorm:"-" `
+	Error    string         `json:"error" gorm:"-" `
 }
 
 type Session struct {
 	SessionId    string    `gorm:"not null;unique"`
-	TempPassword string    `gorm:"not null"`
+	TempPassword int       `gorm:"not null"`
 	ExpiresAt    time.Time `gorm:"not null"`
 }
 type TempUser struct {
@@ -28,7 +31,7 @@ type TempUser struct {
 	Phone     string    `json:"phone" gorm:"not null"`
 	Password  string    `json:"password" gorm:"not null"`
 	ExpiresAt time.Time `json:"expires_at" gorm:"not null"`
-	IdUser    string    `json:"Id_User" gorm:"not null;uniqueIndex:idx_user"`
+	UserId    int       `json:"user_id" gorm:"type:bigint;not null;uniqueIndex:user_idx"`
 	Jwt       string    `json:"jwt" gorm:"-"`
 	Error     string    `json:"error" gorm:"-"`
 }

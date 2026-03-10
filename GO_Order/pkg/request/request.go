@@ -8,7 +8,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-func RequestHandler[T any](w http.ResponseWriter, r *http.Request) (*T, error) {
+func RequestHandler[T any](r *http.Request) (*T, error) {
 	var payload T
 	errJs := json.NewDecoder(r.Body).Decode(&payload)
 	if errJs != nil {

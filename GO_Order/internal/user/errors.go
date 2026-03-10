@@ -3,7 +3,7 @@ package user
 import "errors"
 
 var (
-	ErrReg = errors.New("This user already exists, please log in")
+	ErrReg = errors.New("this user already exists, please log in")
 
 	ErrSecurity = errors.New("failed to ensure the security of data transmission")
 
@@ -16,6 +16,8 @@ var (
 	ErrCreateUser = errors.New("failed to records user")
 	ErrWrongData  = errors.New("wrong email/phone or password")
 	ErrAuth       = errors.New("there is no such authorization method")
+
+	ErrUserNotFound = errors.New("such user not found")
 
 	ErrIncorrectCode = errors.New("code is incorrect")
 )

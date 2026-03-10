@@ -1,49 +1,50 @@
 package product
 
 import (
+	"errors"
 	"net/http"
 	"order/app/configs"
+	"order/app/internal/common"
 	custerrors "order/app/pkg/custErrors"
 	"order/app/pkg/middleware"
 	"order/app/pkg/request"
 	"order/app/pkg/response"
 )
 
-type ProductHandler struct {
-	Product
-	ProductHandlerDep
+type HandlerProduct struct {
+	common.Product
+	HandlerProductDep
 }
-type ProductHandlerDep struct {
-	*ProductService
+type HandlerProductDep struct {
+	Service *ProductService
 	*configs.Config
 }
 
-func NewProductHandler(router *http.ServeMux, setting ProductHandlerDep) {
-	prod := &ProductHandler{
-		ProductHandlerDep: setting,
+func NewHandlerProduct(router *http.ServeMux, setting HandlerProductDep) {
+	prod := &HandlerProduct{
+		HandlerProductDep: setting,
 	}
-	router.Handle("POST /product", middleware.IsAuth(prod.HandlerCreateProduct(), setting.Config))
-	router.Handle("PATCH /product/{hash}", middleware.IsAuth(prod.HandlerUpdateProduct(), setting.Config))
-	router.Handle("GET /product/{hash}", middleware.IsAuth(prod.HadlerGetProduct(), setting.Config))
-	router.Handle("GET /product", middleware.IsAuth(prod.HandlerAllProduct(), setting.Config))
-	router.Handle("DELETE /product/{hash}", middleware.IsAuth(prod.HandlerDeleteProduct(), setting.Config))
+	router.Handle("POST /product", middleware.IsAuthID(prod.CreateProduct(), setting.Config))
+	router.Handle("PATCH /product/{hash}", middleware.IsAuthID(prod.UpdateProduct(), setting.Config))
+	router.Handle("GET /product/{hash}", middleware.IsAuthID(prod.GetProduct(), setting.Config))
+	router.Handle("GET /product", middleware.IsAuthID(prod.AllProduct(), setting.Config))
+	router.Handle("DELETE /product/{hash}", middleware.IsAuthID(prod.DeleteProduct(), setting.Config))
 }
-func (h *ProductHandler) HandlerCreateProduct() http.HandlerFunc {
+func (h *HandlerProduct) CreateProduct() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idUser, ok := r.Context().Value(middleware.KeyIDUser).(string)
+		idUser, ok := r.Context().Value(middleware.KeyIDUser).(float64)
 		if !ok {
 			h.Product.Error = custerrors.ErrInvalidToken.Error()
 			response.RespJs(w, h.Product, http.StatusUnauthorized)
 			return
 		}
-
-		body, errReq := request.RequestHandler[RequestProductCreate](w, r)
+		body, errReq := request.RequestHandler[RequestProductCreate](r)
 		if errReq != nil {
 			h.Product.Error = errReq.Error()
 			response.RespJs(w, h.Product, http.StatusBadRequest)
 			return
 		}
-		product, errCreate := h.ServiceCreate(body, idUser)
+		product, errCreate := h.Service.CreateProduct(body, int(idUser))
 		if errCreate != nil {
 			h.Product.Error = errCreate.Error()
 			response.RespJs(w, h.Product, http.StatusInternalServerError)
@@ -52,26 +53,26 @@ func (h *ProductHandler) HandlerCreateProduct() http.HandlerFunc {
 		response.RespJs(w, product, http.StatusCreated)
 	}
 }
-func (h *ProductHandler) HandlerUpdateProduct() http.HandlerFunc {
+func (h *HandlerProduct) UpdateProduct() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idUser, ok := r.Context().Value(middleware.KeyIDUser).(string)
+		idUser, ok := r.Context().Value(middleware.KeyIDUser).(float64)
 		if !ok {
 			h.Product.Error = custerrors.ErrInvalidToken.Error()
 			response.RespJs(w, h.Product, http.StatusUnauthorized)
 			return
 		}
 
-		body, errReq := request.RequestHandler[RequestProductUpdate](w, r)
+		body, errReq := request.RequestHandler[RequestProductUpdate](r)
 		if errReq != nil {
 			h.Product.Error = errReq.Error()
 			response.RespJs(w, h.Product, http.StatusBadRequest)
 			return
 		}
 		hash := r.PathValue("hash")
-		resProd, errUpdate := h.ServiceUpdate(body, hash, idUser)
+		resProd, errUpdate := h.Service.UpdateProduct(body, hash, int(idUser))
 		if errUpdate != nil {
 			h.Product.Error = errUpdate.Error()
-			if errUpdate == ErrNotFoundProduct {
+			if errors.Is(errUpdate, ErrNotFoundProduct) {
 				response.RespJs(w, h.Product, http.StatusNotFound)
 			} else {
 				response.RespJs(w, h.Product, http.StatusInternalServerError)
@@ -81,9 +82,9 @@ func (h *ProductHandler) HandlerUpdateProduct() http.HandlerFunc {
 		response.RespJs(w, resProd, http.StatusCreated)
 	}
 }
-func (h *ProductHandler) HadlerGetProduct() http.HandlerFunc {
+func (h *HandlerProduct) GetProduct() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idUser, ok := r.Context().Value(middleware.KeyIDUser).(string)
+		idUser, ok := r.Context().Value(middleware.KeyIDUser).(float64)
 		if !ok {
 			h.Product.Error = custerrors.ErrInvalidToken.Error()
 			response.RespJs(w, h.Product, http.StatusUnauthorized)
@@ -91,7 +92,7 @@ func (h *ProductHandler) HadlerGetProduct() http.HandlerFunc {
 		}
 
 		hash := r.PathValue("hash")
-		record, errGet := h.GetByHash(hash, idUser)
+		record, errGet := h.Service.Repo.GetByHash(hash, int(idUser))
 		if errGet != nil {
 			h.Product.Error = ErrNotFoundProduct.Error()
 			response.RespJs(w, h.Product, http.StatusNotFound)
@@ -100,9 +101,9 @@ func (h *ProductHandler) HadlerGetProduct() http.HandlerFunc {
 		response.RespJs(w, record, http.StatusOK)
 	}
 }
-func (h *ProductHandler) HandlerDeleteProduct() http.HandlerFunc {
+func (h *HandlerProduct) DeleteProduct() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idUser, ok := r.Context().Value(middleware.KeyIDUser).(string)
+		idUser, ok := r.Context().Value(middleware.KeyIDUser).(float64)
 		if !ok {
 			h.Product.Error = custerrors.ErrInvalidToken.Error()
 			response.RespJs(w, h.Product, http.StatusUnauthorized)
@@ -110,10 +111,10 @@ func (h *ProductHandler) HandlerDeleteProduct() http.HandlerFunc {
 		}
 
 		hash := r.PathValue("hash")
-		errDel := h.ServiceDelete(hash, idUser)
+		errDel := h.Service.DeleteProduct(hash, int(idUser))
 		if errDel != nil {
 			h.Product.Error = errDel.Error()
-			if errDel == ErrNotFoundProduct {
+			if errors.Is(errDel, ErrNotFoundProduct) {
 				response.RespJs(w, h.Product, http.StatusNotFound)
 			} else {
 				response.RespJs(w, h.Product, http.StatusInternalServerError)
@@ -123,9 +124,9 @@ func (h *ProductHandler) HandlerDeleteProduct() http.HandlerFunc {
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
-func (h *ProductHandler) HandlerAllProduct() http.HandlerFunc {
+func (h *HandlerProduct) AllProduct() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idUser, ok := r.Context().Value(middleware.KeyIDUser).(string)
+		idUser, ok := r.Context().Value(middleware.KeyIDUser).(float64)
 		if !ok {
 			h.Product.Error = custerrors.ErrInvalidToken.Error()
 			response.RespJs(w, h.Product, http.StatusUnauthorized)
@@ -133,16 +134,16 @@ func (h *ProductHandler) HandlerAllProduct() http.HandlerFunc {
 		}
 
 		category := r.URL.Query().Get("category")
-		categoruProducts, errCategory := h.ServiceAllProduct(category, idUser)
+		categoryProducts, errCategory := h.Service.AllProduct(category, int(idUser))
 		if errCategory != nil {
 			h.Product.Error = errCategory.Error()
-			if errCategory == ErrNotCategoryProduct {
+			if errors.Is(errCategory, ErrNotCategoryProduct) {
 				response.RespJs(w, h.Product, http.StatusNotFound)
 			} else {
 				response.RespJs(w, h.Product, http.StatusInternalServerError)
 			}
 			return
 		}
-		response.RespJs(w, categoruProducts, http.StatusOK)
+		response.RespJs(w, categoryProducts, http.StatusOK)
 	}
 }

@@ -1,25 +1,45 @@
 package product
 
+import (
+	"order/app/internal/common"
+	generaterand "order/app/pkg/generateRand"
+)
+
 type ProductService struct {
-	*ProductRepository
+	Repo *ProductRepository
 }
 
 func NewProductService(repo *ProductRepository) *ProductService {
 	return &ProductService{
-		ProductRepository: repo,
+		Repo: repo,
 	}
 }
-func (s *ProductService) ServiceCreate(body *RequestProductCreate, idUser string) (*Product, error) {
-	unuqHash := UniqueCheckHash(s.GetByHash, idUser)
-	product := NewProduct(body.Name, body.Description, body.Category, unuqHash, idUser, body.Images)
-	errCreate := s.Create(product)
+func (s *ProductService) CreateProduct(body *RequestProductCreate, idUser int) (*common.Product, error) {
+	var resHash string
+	for {
+		resHash = generaterand.RandStr(8)
+		_, notFound := s.Repo.GetByHash(resHash, idUser)
+		if notFound != nil {
+			break
+		}
+	}
+	product := &common.Product{
+		Name:        body.Name,
+		Description: body.Description,
+		Category:    body.Category,
+		Hash:        resHash,
+		UserId:      idUser,
+		Images:      body.Images,
+	}
+	errCreate := s.Repo.CreateProduct(product)
 	if errCreate != nil {
 		return nil, ErrCreateProduct
 	}
 	return product, nil
 }
-func (s *ProductService) ServiceUpdate(body *RequestProductUpdate, hash, idUser string) (*Product, error) {
-	record, errGet := s.GetByHash(hash, idUser)
+
+func (s *ProductService) UpdateProduct(body *RequestProductUpdate, hash string, idUser int) (*common.Product, error) {
+	record, errGet := s.Repo.GetByHash(hash, idUser)
 	if errGet != nil {
 		return nil, ErrNotFoundProduct
 	}
@@ -27,25 +47,25 @@ func (s *ProductService) ServiceUpdate(body *RequestProductUpdate, hash, idUser 
 	record.Images = body.Images
 	record.Category = body.Category
 	record.Description = body.Description
-	resProd, errUpdate := s.Update(record, idUser)
+	resProd, errUpdate := s.Repo.UpdateProduct(record, idUser)
 	if errUpdate != nil {
 		return nil, ErrNotUpdateProduct
 	}
 	return resProd, nil
 }
-func (s *ProductService) ServiceDelete(hash, idUser string) error {
-	_, errGet := s.GetByHash(hash, idUser)
+func (s *ProductService) DeleteProduct(hash string, idUser int) error {
+	_, errGet := s.Repo.GetByHash(hash, idUser)
 	if errGet != nil {
 		return ErrNotFoundProduct
 	}
-	errDel := s.Delete(hash, idUser)
+	errDel := s.DeleteProduct(hash, idUser)
 	if errDel != nil {
 		return ErrNotDeleteProduct
 	}
 	return nil
 }
-func (s *ProductService) ServiceAllProduct(category, idUser string) (*ResponseSliceProduct, error) {
-	sliceProduct, errAll := s.GetAll(category, idUser)
+func (s *ProductService) AllProduct(category string, idUser int) (*ResponseSliceProduct, error) {
+	sliceProduct, errAll := s.Repo.GetAllProduct(category, idUser)
 	if errAll != nil {
 		return nil, ErrRecordCategory
 	}
