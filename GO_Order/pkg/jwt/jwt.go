@@ -31,7 +31,7 @@ func (j *JWT) CreateJWT(data *DataJWt) (string, error) {
 	return resJWT, nil
 }
 
-func (j *JWT) TemporaryJWT(data *DataJWt) (string, error) {
+func (j *JWT) CreateTemporaryJWT(data *DataJWt) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"email":     data.Email,
 		"ExpiresAt": time.Now().Add(5 * time.Minute).Unix(),

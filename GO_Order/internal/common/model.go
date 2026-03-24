@@ -10,6 +10,7 @@ type Order struct {
 	ID       uint      `gorm:"primaryKey"`
 	Products []Product `gorm:"many2many:order_products"`
 	UserId   int       `json:"user_id" gorm:"uniqueIndex:user_idx;not null"`
+	OrderId  string    `json:"order_id" gorm:"not null"`
 	Error    string    `json:"error" gorm:"-"`
 }
 

@@ -47,6 +47,8 @@ func (ho *HandlerOrder) CreateOrder() http.HandlerFunc {
 			ho.Order.Error = errOrder.Error()
 			if errors.Is(errOrder, ErrCreateOrder) {
 				response.RespJs(writer, ho.Order, http.StatusInternalServerError)
+			} else if errors.Is(errOrder, custerrors.ErrUserDontExist) {
+				response.RespJs(writer, ho.Order, http.StatusUnauthorized)
 			} else {
 				response.RespJs(writer, ho.Order, http.StatusBadRequest)
 			}
@@ -59,7 +61,6 @@ func (ho *HandlerOrder) CreateOrder() http.HandlerFunc {
 func (ho *HandlerOrder) GetOrder() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		idUser, ok := request.Context().Value(middleware.KeyIDUser).(float64)
-
 		if !ok {
 			ho.Order.Error = custerrors.ErrResponse.Error()
 			response.RespJs(writer, ho.Order, http.StatusUnauthorized)

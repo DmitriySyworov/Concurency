@@ -2,6 +2,7 @@ package user
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"order/app/configs"
 	custerrors "order/app/pkg/custErrors"
@@ -34,7 +35,7 @@ func NewUserHandler(router *http.ServeMux, dep *UserHandlerDep) {
 
 func (h *UserHandler) Register() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body, errReq := request.RequestHandler[RequestUserRegist](r)
+		body, errReq := request.RequestHandler[RequestUserRegister](r)
 		if errReq != nil {
 			h.RespTUser.Error = errReq.Error()
 			response.RespJs(w, h.RespTUser, http.StatusBadRequest)
@@ -56,6 +57,7 @@ func (h *UserHandler) Register() http.HandlerFunc {
 func (h *UserHandler) Login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, errReq := request.RequestHandler[RequestUserLogin](r)
+		fmt.Println(body)
 		if errReq != nil || (body.Email == "" && body.Phone == "") || (body.Email != "" && body.Phone != "") {
 			h.RespTUser.Error = custerrors.ErrInvalidData.Error()
 			response.RespJs(w, h.RespTUser, http.StatusBadRequest)

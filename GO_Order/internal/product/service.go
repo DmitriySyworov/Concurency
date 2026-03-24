@@ -2,19 +2,27 @@ package product
 
 import (
 	"order/app/internal/common"
+	custerrors "order/app/pkg/custErrors"
+	"order/app/pkg/di"
 	generaterand "order/app/pkg/generateRand"
 )
 
 type ProductService struct {
 	Repo *ProductRepository
+	di.IUserRepo
 }
 
-func NewProductService(repo *ProductRepository) *ProductService {
+func NewProductService(repo *ProductRepository, userRepo di.IUserRepo) *ProductService {
 	return &ProductService{
-		Repo: repo,
+		Repo:      repo,
+		IUserRepo: userRepo,
 	}
 }
 func (s *ProductService) CreateProduct(body *RequestProductCreate, idUser int) (*common.Product, error) {
+	errId := s.IUserRepo.GetByIdUser(idUser)
+	if errId != nil {
+		return nil, custerrors.ErrUserDontExist
+	}
 	var resHash string
 	for {
 		resHash = generaterand.RandStr(8)

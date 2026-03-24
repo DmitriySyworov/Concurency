@@ -47,7 +47,11 @@ func (h *HandlerProduct) CreateProduct() http.HandlerFunc {
 		product, errCreate := h.Service.CreateProduct(body, int(idUser))
 		if errCreate != nil {
 			h.Product.Error = errCreate.Error()
-			response.RespJs(w, h.Product, http.StatusInternalServerError)
+			if errors.Is(errCreate, custerrors.ErrUserDontExist) {
+				response.RespJs(w, h.Product, http.StatusUnauthorized)
+			} else {
+				response.RespJs(w, h.Product, http.StatusInternalServerError)
+			}
 			return
 		}
 		response.RespJs(w, product, http.StatusCreated)

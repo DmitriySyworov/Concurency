@@ -31,7 +31,7 @@ type TempUser struct {
 	Phone     string    `json:"phone" gorm:"not null"`
 	Password  string    `json:"password" gorm:"not null"`
 	ExpiresAt time.Time `json:"expires_at" gorm:"not null"`
-	UserId    int       `json:"user_id" gorm:"type:bigint;not null;uniqueIndex:user_idx"`
+	UserId    int       `json:"user_id" gorm:"not null;uniqueIndex:user_idx"`
 	Jwt       string    `json:"jwt" gorm:"-"`
 	Error     string    `json:"error" gorm:"-"`
 }

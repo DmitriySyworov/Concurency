@@ -2,7 +2,7 @@ package user
 
 import "time"
 
-type RequestUserRegist struct {
+type RequestUserRegister struct {
 	Name     string `json:"name" validate:"required"`
 	Email    string `json:"email" validate:"required,email"`
 	Phone    string `json:"phone" validate:"required"`
@@ -10,8 +10,8 @@ type RequestUserRegist struct {
 }
 type RequestUserLogin struct {
 	Name     string `json:"name" validate:"required"`
-	Email    string `json:"email" validate:"email"`
-	Phone    string `json:"phone"`
+	Email    string `json:"email" validate:"required_without=Phone"`
+	Phone    string `json:"phone" validate:"required_without=Email"`
 	Password string `json:"password" validate:"required"`
 }
 type ResponseAuth struct {

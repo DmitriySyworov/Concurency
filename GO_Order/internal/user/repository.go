@@ -1,8 +1,6 @@
 package user
 
 import (
-	"context"
-	"log"
 	"order/app/pkg/db"
 	"time"
 )
@@ -70,7 +68,7 @@ func (r *UserRepository) GetSession(sessId string) (Session, error) {
 	return sess, nil
 }
 
-func (r *UserRepository) DeleteTempDB(ctx context.Context) {
+func (r *UserRepository) DeleteTempDB() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 	for {
@@ -78,9 +76,6 @@ func (r *UserRepository) DeleteTempDB(ctx context.Context) {
 		case <-ticker.C:
 			r.DB.Where("expires_at < ?", time.Now()).Delete(&Session{})
 			r.DB.Where("expires_at < ?", time.Now()).Delete(&TempUser{})
-		case <-ctx.Done():
-			log.Println(ctx.Err())
-			return
 		}
 	}
 }

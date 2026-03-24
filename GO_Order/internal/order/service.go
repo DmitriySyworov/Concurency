@@ -2,8 +2,11 @@ package order
 
 import (
 	"order/app/internal/common"
+	custerrors "order/app/pkg/custErrors"
 	"order/app/pkg/di"
 	"strconv"
+
+	"github.com/google/uuid"
 )
 
 type ServiceOrder struct {
@@ -12,6 +15,7 @@ type ServiceOrder struct {
 }
 type ServiceOrderDep struct {
 	di.IProductRepo
+	di.IUserRepo
 }
 
 func NewServiceOrder(repo *RepositoryOrder, dep *ServiceOrderDep) *ServiceOrder {
@@ -21,6 +25,10 @@ func NewServiceOrder(repo *RepositoryOrder, dep *ServiceOrderDep) *ServiceOrder 
 	}
 }
 func (s *ServiceOrder) CreateOrder(productsHash []string, idUser int) (*common.Order, error) {
+	errId := s.ServiceOrderDep.GetByIdUser(idUser)
+	if errId != nil {
+		return nil, custerrors.ErrUserDontExist
+	}
 	var incorrectHash string
 	var correctProd []common.Product
 	for _, hash := range productsHash {
@@ -34,9 +42,11 @@ func (s *ServiceOrder) CreateOrder(productsHash []string, idUser int) (*common.O
 	if len(correctProd) == 0 {
 		return nil, ErrHashes(incorrectHash)
 	}
+	id := uuid.New()
 	order := &common.Order{
 		Products: correctProd,
 		UserId:   idUser,
+		OrderId:  id.String(),
 	}
 	errCreate := s.RepositoryOrder.CreateOrder(order)
 	if errCreate != nil {
@@ -46,11 +56,7 @@ func (s *ServiceOrder) CreateOrder(productsHash []string, idUser int) (*common.O
 	return order, nil
 }
 func (s *ServiceOrder) GetOrder(idUser int, idOrder string) (*common.Order, error) {
-	id, errId := strconv.Atoi(idOrder)
-	if errId != nil {
-		return nil, ErrIndexOrder
-	}
-	order, errGet := s.RepositoryOrder.GetOrder(idUser, uint(id))
+	order, errGet := s.RepositoryOrder.GetOrder(idOrder, idUser)
 	if errGet != nil {
 		return nil, ErrOrderNotFound
 	}

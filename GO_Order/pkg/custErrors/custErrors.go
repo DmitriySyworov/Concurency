@@ -9,5 +9,7 @@ var (
 	ErrRequest     = errors.New("incorrect request structure")
 	ErrInvalidData = errors.New("invalid data transmitted")
 
+	ErrUserDontExist = errors.New("such user does not exist")
+
 	ErrCreateToken = errors.New("failed to create token")
 )

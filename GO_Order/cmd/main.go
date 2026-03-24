@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"net/http"
 	"order/app/configs"
 	"order/app/internal/order"
@@ -12,20 +11,29 @@ import (
 )
 
 func main() {
+	app := App()
+	server := http.Server{
+		Addr:    ":8081",
+		Handler: app,
+	}
+	errApi := server.ListenAndServe()
+	if errApi != nil {
+		panic(errApi)
+	}
+}
+func App() http.Handler {
 	conf := configs.NewConfig()
 	DbConnect := db.NewDb(conf)
 	router := http.NewServeMux()
-	ctxCancel, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	r := user.NewUserRepository(DbConnect)
-	go r.DeleteTempDB(ctxCancel)
+	userRepo := user.NewUserRepository(DbConnect)
+	go userRepo.DeleteTempDB()
 	//repositories
 	productRepo := product.NewProductRepository(DbConnect)
 	orderRepo := order.NewRepositoryOrder(DbConnect)
 	//services
-	productService := product.NewProductService(productRepo)
-	userService := user.NewUserService(r, conf)
-	orderService := order.NewServiceOrder(orderRepo, &order.ServiceOrderDep{IProductRepo: productRepo})
+	productService := product.NewProductService(productRepo, userRepo)
+	userService := user.NewUserService(userRepo, conf)
+	orderService := order.NewServiceOrder(orderRepo, &order.ServiceOrderDep{IProductRepo: productRepo, IUserRepo: userRepo})
 	//handlers
 	product.NewHandlerProduct(router, product.HandlerProductDep{Service: productService, Config: conf})
 	user.NewUserHandler(router, &user.UserHandlerDep{Service: userService, Config: conf})
@@ -34,12 +42,5 @@ func main() {
 		middleware.CORS,
 		middleware.Logging,
 	)
-	server := http.Server{
-		Addr:    ":8081",
-		Handler: stack(router),
-	}
-	errApi := server.ListenAndServe()
-	if errApi != nil {
-		panic(errApi)
-	}
+	return stack(router)
 }

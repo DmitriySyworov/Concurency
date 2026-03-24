@@ -2,12 +2,14 @@ package user
 
 import (
 	"fmt"
+	"net/smtp"
 	"order/app/configs"
 	generaterand "order/app/pkg/generateRand"
 	jwts "order/app/pkg/jwt"
 	"strings"
 	"time"
 
+	"github.com/jordan-wright/email"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -23,7 +25,7 @@ func NewUserService(repo *UserRepository, conf *configs.Config) *UserService {
 	}
 }
 
-func (s *UserService) Register(body *RequestUserRegist) (*TempUser, error) {
+func (s *UserService) Register(body *RequestUserRegister) (*TempUser, error) {
 	_, errReg := s.GetByEmailOrPhone(body.Email, body.Phone)
 	if errReg == nil {
 		return nil, ErrReg
@@ -48,11 +50,11 @@ func (s *UserService) Register(body *RequestUserRegist) (*TempUser, error) {
 		UserId:    idUser,
 		ExpiresAt: time.Now().Add(5 * time.Minute),
 	}
-	errTemppUser := s.CreateTempUser(tempUser)
-	if errTemppUser != nil {
-		return nil, errTemppUser
+	errTempUser := s.CreateTempUser(tempUser)
+	if errTempUser != nil {
+		return nil, errTempUser
 	}
-	jwtToken, errJwt := jwts.NewJWT(s.Secret).TemporaryJWT(&jwts.DataJWt{Email: tempUser.Email})
+	jwtToken, errJwt := jwts.NewJWT(s.Secret).CreateTemporaryJWT(&jwts.DataJWt{Email: tempUser.Email})
 	if errJwt != nil {
 		return nil, errJwt
 	}
@@ -80,7 +82,7 @@ func (s *UserService) Login(body *RequestUserLogin) (*TempUser, error) {
 	if errTemppUser != nil {
 		return nil, errTemppUser
 	}
-	jwtToken, errJwt := jwts.NewJWT(s.Secret).TemporaryJWT(&jwts.DataJWt{Email: tempUser.Email})
+	jwtToken, errJwt := jwts.NewJWT(s.Secret).CreateTemporaryJWT(&jwts.DataJWt{Email: tempUser.Email})
 	if errJwt != nil {
 		return nil, errJwt
 	}
@@ -114,7 +116,7 @@ func (s *UserService) Auth(method, tempEmail string) (*ResponseAuth, error) {
 		if errSess != nil {
 			return nil, ErrSecurity
 		}
-		errSend := Send(s.Config.VerifyEmail, tempEmail, tempPass)
+		errSend := send(s.Config.VerifyEmail, tempEmail, tempPass)
 		if errSend != nil {
 			return nil, errSend
 		}
@@ -157,6 +159,19 @@ func (s *UserService) Confirm(body *RequestConfirm, session, tempEmail, action s
 	default:
 		return "", ErrAuth
 	}
+}
+func send(conf *configs.VerifyEmail, emailUser string, sessPassword int) error {
+	e := email.NewEmail()
+	e.From = conf.EmailApi
+	e.To = []string{emailUser}
+	e.Subject = "Verification message"
+	e.Text = []byte(fmt.Sprint(sessPassword))
+	e.HTML = []byte(fmt.Sprintf(`Your code: %d Enter this code in the application or website to gain access to your account. If you did not request a code, simply ignore this email.`, sessPassword))
+	errSend := e.Send(conf.AddressHost, smtp.PlainAuth("", conf.EmailApi, conf.PasswordApi, conf.Address))
+	if errSend != nil {
+		return ErrSendEmail
+	}
+	return nil
 }
 func (s *UserService) compareSession(body *RequestConfirm, session, tempEmail string) (*TempUser, string, error) {
 	sess, errSess := s.GetSession(strings.TrimPrefix(session, "Bearer "))
