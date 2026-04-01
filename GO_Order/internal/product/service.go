@@ -12,6 +12,11 @@ type ProductService struct {
 	di.IUserRepo
 }
 
+func (s *ProductService) GetByEmailOrPhone(string, string) (*common.User, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func NewProductService(repo *ProductRepository, userRepo di.IUserRepo) *ProductService {
 	return &ProductService{
 		Repo:      repo,
@@ -19,7 +24,7 @@ func NewProductService(repo *ProductRepository, userRepo di.IUserRepo) *ProductS
 	}
 }
 func (s *ProductService) CreateProduct(body *RequestProductCreate, idUser int) (*common.Product, error) {
-	errId := s.IUserRepo.GetByIdUser(idUser)
+	_, errId := s.IUserRepo.GetByIdUser(idUser)
 	if errId != nil {
 		return nil, custerrors.ErrUserDontExist
 	}

@@ -25,7 +25,7 @@ func NewServiceOrder(repo *RepositoryOrder, dep *ServiceOrderDep) *ServiceOrder 
 	}
 }
 func (s *ServiceOrder) CreateOrder(productsHash []string, idUser int) (*common.Order, error) {
-	errId := s.ServiceOrderDep.GetByIdUser(idUser)
+	_, errId := s.ServiceOrderDep.GetByIdUser(idUser)
 	if errId != nil {
 		return nil, custerrors.ErrUserDontExist
 	}

@@ -1,81 +1,78 @@
 package user
 
 import (
+	"fmt"
+	"order/app/internal/common"
+	custerrors "order/app/pkg/custErrors"
 	"order/app/pkg/db"
-	"time"
+
+	"gorm.io/gorm/clause"
 )
 
-type UserRepository struct {
+type RepositoryUser struct {
 	*db.Db
 }
 
-func NewUserRepository(database *db.Db) *UserRepository {
-	return &UserRepository{
-		Db: database,
+func NewUserRepository(db *db.Db) *RepositoryUser {
+	return &RepositoryUser{
+		Db: db,
 	}
 }
-
-func (r *UserRepository) CreateUser(user *User) error {
-	result := r.DB.Create(&user)
+func (db *RepositoryUser) UpdateUser(user *common.User) error {
+	res := db.Clauses(clause.Returning{}).
+		Where("deleted_at is null AND user_id = ?", user.UserId).
+		Updates(user)
+	if res.Error != nil {
+		return res.Error
+	}
+	return nil
+}
+func (db *RepositoryUser) DeleteUser(userId int) error {
+	res := db.Where("user_id = ?", userId).Delete(&common.User{})
+	if res.Error != nil {
+		return res.Error
+	}
+	return nil
+}
+func (db *RepositoryUser) CreateUser(user *common.User) error {
+	result := db.DB.Create(&user)
 	if result.Error != nil {
 		return result.Error
 	}
 	return nil
 }
-func (r *UserRepository) GetByIdUser(idUser int) error {
-	var user User
-	res := r.Db.Where("user_id = ?", idUser).First(&user)
-	return res.Error
-}
-func (r *UserRepository) GetByEmailOrPhone(email, phone string) (*User, error) {
-	var user User
-	res := r.DB.Where("email = ? OR phone = ?", email, phone).First(&user)
+func (db *RepositoryUser) GetByIdUser(idUser int) (*common.User, error) {
+	var user common.User
+	res := db.Db.Where("user_id = ? AND deleted_at is null", idUser).First(&user)
 	if res.Error != nil {
 		return nil, res.Error
 	}
 	return &user, nil
 }
-func (r *UserRepository) CreateTempUser(tempUser *TempUser) error {
-	result := r.DB.Create(&tempUser)
-	if result.Error != nil {
-		return result.Error
-	}
-	return nil
-}
-func (r *UserRepository) CreateSession(sess *Session) error {
-	result := r.DB.Create(&sess)
-	if result.Error != nil {
-		return result.Error
-	}
-	return nil
-}
-func (r *UserRepository) GetTempUser(email string) (*TempUser, error) {
-	var tempUser TempUser
-	res := r.DB.Where("email = ?", email).First(&tempUser)
+func (db *RepositoryUser) GetByEmailOrPhone(email, phone string) (*common.User, error) {
+	var user common.User
+	res := db.DB.Where("deleted_at is null AND email = ? OR phone = ?", email, phone).First(&user)
 	if res.Error != nil {
 		return nil, res.Error
 	}
-	return &tempUser, nil
+	return &user, nil
 }
-
-func (r *UserRepository) GetSession(sessId string) (Session, error) {
-	var sess Session
-	resultGet := r.DB.Where("session_id = ?", sessId).First(&sess)
-	if resultGet.Error != nil {
-		return sess, resultGet.Error
+func (db *RepositoryUser) GetByDeleteUser(email, phone string) (*common.User, error) {
+	var user common.User
+	res := db.DB.Unscoped().Where("email = ? OR phone = ?", email, phone).First(&user)
+	fmt.Println(user.DeletedAt)
+	if res.Error != nil {
+		return nil, res.Error
 	}
-	r.DB.Where("session_id = ?", sessId).Delete(&Session{})
-	return sess, nil
+	if !user.DeletedAt.Valid {
+		return nil, custerrors.ErrUserNotFound
+	}
+	return &user, nil
 }
-
-func (r *UserRepository) DeleteTempDB() {
-	ticker := time.NewTicker(1 * time.Minute)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			r.DB.Where("expires_at < ?", time.Now()).Delete(&Session{})
-			r.DB.Where("expires_at < ?", time.Now()).Delete(&TempUser{})
-		}
+func (db *RepositoryUser) RestoreUser(userId int) error {
+	res := db.Model(&common.User{}).Unscoped().Where("user_id = ?", userId).Update("deleted_at", nil)
+	if res.Error != nil {
+		return res.Error
 	}
+	return nil
 }

@@ -12,7 +12,7 @@ var (
 
 	ErrOrderNotFound = errors.New("orders not found")
 
-	ErrParams = errors.New("the request parameters were passed incorrectly")
+	ErrParams = errors.New("the requestJs parameters were passed incorrectly")
 )
 
 func ErrHashes(errHash string) error {

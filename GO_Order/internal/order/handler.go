@@ -7,7 +7,7 @@ import (
 	"order/app/internal/common"
 	custerrors "order/app/pkg/custErrors"
 	"order/app/pkg/middleware"
-	"order/app/pkg/request"
+	"order/app/pkg/requestJs"
 	"order/app/pkg/response"
 )
 
@@ -25,9 +25,9 @@ func NewHandlerOrder(router *http.ServeMux, dep *HandlerOrderDep) {
 	order := &HandlerOrder{
 		HandlerOrderDep: dep,
 	}
-	router.Handle("POST /order", middleware.IsAuthID(order.CreateOrder(), dep.Config))
-	router.Handle("GET /order/{id}", middleware.IsAuthID(order.GetOrder(), dep.Config))
-	router.Handle("GET /my-orders", middleware.IsAuthID(order.GetAllOrders(), dep.Config))
+	router.Handle("POST /users/orders", middleware.IsAuthID(order.CreateOrder(), dep.Config))
+	router.Handle("GET /users/orders/{id}", middleware.IsAuthID(order.GetOrder(), dep.Config))
+	router.Handle("GET /users/my-orders", middleware.IsAuthID(order.GetAllOrders(), dep.Config))
 }
 func (ho *HandlerOrder) CreateOrder() http.HandlerFunc {
 	return func(writer http.ResponseWriter, r *http.Request) {
@@ -37,7 +37,7 @@ func (ho *HandlerOrder) CreateOrder() http.HandlerFunc {
 			response.RespJs(writer, ho.Order, http.StatusUnauthorized)
 			return
 		}
-		body, errBody := request.RequestHandler[CreateOrderRequest](r)
+		body, errBody := requestJs.RequestHandler[CreateOrderRequest](r)
 		if errBody != nil || len(body.ProductsHash) == 0 {
 			ho.Order.Error = errBody.Error()
 			response.RespJs(writer, ho.Order, http.StatusBadRequest)

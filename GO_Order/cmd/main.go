@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"order/app/configs"
+	"order/app/internal/auth"
 	"order/app/internal/order"
 	"order/app/internal/product"
 	"order/app/internal/user"
@@ -25,19 +26,23 @@ func App() http.Handler {
 	conf := configs.NewConfig()
 	DbConnect := db.NewDb(conf)
 	router := http.NewServeMux()
-	userRepo := user.NewUserRepository(DbConnect)
-	go userRepo.DeleteTempDB()
 	//repositories
+	authRepo := auth.NewRepositoryAuth(DbConnect)
+	userRepo := user.NewUserRepository(DbConnect)
 	productRepo := product.NewProductRepository(DbConnect)
 	orderRepo := order.NewRepositoryOrder(DbConnect)
+	//
+	go authRepo.DeleteTempDB()
 	//services
+	authService := auth.NewAuthService(authRepo, &auth.ServiceAuthDep{IUserRepo: userRepo, Config: conf})
+	userService := user.NewServiceUser(userRepo)
 	productService := product.NewProductService(productRepo, userRepo)
-	userService := user.NewUserService(userRepo, conf)
 	orderService := order.NewServiceOrder(orderRepo, &order.ServiceOrderDep{IProductRepo: productRepo, IUserRepo: userRepo})
 	//handlers
+	auth.NewUserHandler(router, &auth.HandlerAuthDep{Service: authService, Config: conf})
+	user.NewHandlerUser(router, &user.HandlerUserDep{ServiceUser: userService, Config: conf})
 	product.NewHandlerProduct(router, product.HandlerProductDep{Service: productService, Config: conf})
-	user.NewUserHandler(router, &user.UserHandlerDep{Service: userService, Config: conf})
-	order.NewHandlerOrder(router, &order.HandlerOrderDep{Config: conf, Service: orderService})
+	order.NewHandlerOrder(router, &order.HandlerOrderDep{Service: orderService, Config: conf})
 	stack := middleware.Chain(
 		middleware.CORS,
 		middleware.Logging,

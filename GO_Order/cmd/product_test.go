@@ -27,7 +27,7 @@ func TestProductCreate(t *testing.T) {
 		t.Fatal(errJs)
 	}
 
-	request, errReq := http.NewRequest(http.MethodPost, "/product", bytes.NewBuffer(data))
+	request, errReq := http.NewRequest(http.MethodPost, "/users/products", bytes.NewBuffer(data))
 	if errReq != nil {
 		t.Fatal(errReq)
 	}
@@ -69,7 +69,7 @@ func TestProductUpdate(t *testing.T) {
 		t.Fatal(errJs)
 	}
 
-	request, errReq := http.NewRequest(http.MethodPatch, "/product/"+test.ProductFirstTest.Hash, bytes.NewBuffer(data))
+	request, errReq := http.NewRequest(http.MethodPatch, "/users/products/"+test.ProductFirstTest.Hash, bytes.NewBuffer(data))
 	if errReq != nil {
 		t.Fatal(errReq)
 	}
@@ -107,7 +107,7 @@ func TestProductGet(t *testing.T) {
 		UserId:      test.UserTest.UserId,
 	})
 	defer db.ClearDb()
-	request, errReq := http.NewRequest(http.MethodGet, "/product/"+test.ProductFirstTest.Hash, nil)
+	request, errReq := http.NewRequest(http.MethodGet, "/users/products/"+test.ProductFirstTest.Hash, nil)
 	if errReq != nil {
 		t.Fatal(errReq)
 	}
@@ -141,7 +141,7 @@ func TestProductDelete(t *testing.T) {
 		UserId:      test.UserTest.UserId,
 	})
 	defer db.ClearDb()
-	request, errReq := http.NewRequest(http.MethodDelete, "/product/"+test.ProductFirstTest.Hash, nil)
+	request, errReq := http.NewRequest(http.MethodDelete, "/users/products/"+test.ProductFirstTest.Hash, nil)
 	if errReq != nil {
 		t.Fatal(errReq)
 	}
@@ -164,7 +164,7 @@ func TestProductAllGet(t *testing.T) {
 		UserId:      test.UserTest.UserId,
 	})
 	defer db.ClearDb()
-	request, errReq := http.NewRequest(http.MethodGet, "/product", nil)
+	request, errReq := http.NewRequest(http.MethodGet, "/users/products", nil)
 	if errReq != nil {
 		t.Fatal(errReq)
 	}

@@ -7,5 +7,9 @@ type IProductRepo interface {
 }
 
 type IUserRepo interface {
-	GetByIdUser(int) error
+	GetByIdUser(int) (*common.User, error)
+	CreateUser(*common.User) error
+	GetByEmailOrPhone(string, string) (*common.User, error)
+	GetByDeleteUser(string, string) (*common.User, error)
+	RestoreUser(int) error
 }

@@ -25,7 +25,7 @@ func TestCreateOrder(t *testing.T) {
 	if errJs != nil {
 		t.Fatal(errJs)
 	}
-	request, errReq := http.NewRequest(http.MethodPost, "/order", bytes.NewBuffer(data))
+	request, errReq := http.NewRequest(http.MethodPost, "/users/orders", bytes.NewBuffer(data))
 	if errReq != nil {
 		t.Fatal(errReq)
 	}
@@ -60,7 +60,7 @@ func TestGetOrder(t *testing.T) {
 		OrderId:  test.OrderId,
 	})
 	defer db.ClearDb()
-	request := httptest.NewRequest(http.MethodGet, "/order/"+test.OrderId, nil)
+	request := httptest.NewRequest(http.MethodGet, "/users/orders/"+test.OrderId, nil)
 	request.Header.Add("Authorization", test.UserJwt)
 	writer := httptest.NewRecorder()
 	App().ServeHTTP(writer, request)
@@ -93,7 +93,7 @@ func TestAllOrderGet(t *testing.T) {
 		OrderId:  test.OrderId,
 	})
 	defer db.ClearDb()
-	request := httptest.NewRequest(http.MethodGet, "/my-orders", nil)
+	request := httptest.NewRequest(http.MethodGet, "/users/my-orders", nil)
 	request.Header.Add("Authorization", test.UserJwt)
 	writer := httptest.NewRecorder()
 	App().ServeHTTP(writer, request)

@@ -26,3 +26,16 @@ type Product struct {
 	Orders      []Order        `gorm:"many2many:order_products"`
 	Error       string         `json:"error" gorm:"-"`
 }
+
+type User struct {
+	gorm.Model
+	ID       uint    `gorm:"primaryKey"`
+	Name     string  `json:"name" gorm:"not null"`
+	Email    string  `json:"email" gorm:"not null;uniqueIndex:idx_email"`
+	Phone    string  `json:"phone" gorm:"not null;unique"`
+	Password string  `json:"password" gorm:"not null" `
+	Orders   []Order `gorm:"foreignKey:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
+	UserId   int     `json:"user_id" gorm:"not null;uniqueIndex:user_idx"`
+	Jwt      string  `json:"jwt" gorm:"-" `
+	Error    string  `json:"error" gorm:"-" `
+}

@@ -2,8 +2,8 @@ package test
 
 import (
 	"log"
+	"order/app/internal/auth"
 	"order/app/internal/common"
-	"order/app/internal/user"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -15,14 +15,14 @@ type DbTest struct {
 	*gorm.DB
 }
 
-var UserTest = user.User{
+var UserTest = common.User{
 	Name:     "DDAy",
 	Email:    "Dday1@gmail.com",
-	Password: "$2a$10$abjhCeIrA0emF5d1VDCs1OZ98hoxHy1RnCo3qzSPLyrptHn9MmPKW",
+	Password: "$2a$10$LNAtNw8kSDPFeotw44F9UOkalXNjIlurXpG0UoOtyKiNzqCvmvqZq",
 	Phone:    "7121321313",
 	UserId:   777463957883,
 }
-var UserTempTest = user.TempUser{
+var UserTempTest = auth.TempUser{
 	Name:     "DDAy",
 	Email:    "Dday1@gmail.com",
 	Password: "$2a$10$abjhCeIrA0emF5d1VDCs1OZ98hoxHy1RnCo3qzSPLyrptHn9MmPKW",
@@ -47,8 +47,9 @@ var ProductSecondTest = common.Product{
 }
 
 const (
-	UserJwt = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZF91c2VyIjo3Nzc0NjM5NTc4ODN9.GiOV_GZDQ5iF9DNQXpdaQYL85ih5vqiNwPQkm4xdbtQ"
-	OrderId = "918cdc94-021b-4eb3-80c3-5c4d241dab03"
+	UserJwt  = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZF91c2VyIjo3Nzc0NjM5NTc4ODN9.GiOV_GZDQ5iF9DNQXpdaQYL85ih5vqiNwPQkm4xdbtQ"
+	OrderId  = "918cdc94-021b-4eb3-80c3-5c4d241dab03"
+	Password = "qwjaixzmx1w"
 )
 
 func NewDbTest() *DbTest {
@@ -61,7 +62,7 @@ func NewDbTest() *DbTest {
 		panic(errDb)
 	}
 	return &DbTest{
-		DB: db,
+		DB: db, //.Begin(),
 	}
 }
 func (db *DbTest) InitProducts(product *common.Product) {
@@ -70,24 +71,18 @@ func (db *DbTest) InitProducts(product *common.Product) {
 		log.Println("error initialization product")
 	}
 }
-func (db *DbTest) InitUser(user *user.User) {
+func (db *DbTest) InitUser(user *common.User) {
 	res := db.Create(&user)
 	if res.Error != nil {
-		log.Println("error initialization user")
+		log.Println("error initialization auth")
 	}
 }
-func (db *DbTest) InitTempUser(user *user.TempUser) {
+func (db *DbTest) InitTempUser(user *auth.TempUser) {
 	res := db.Create(&user)
 	if res.Error != nil {
 		log.Println("error initialization tempUser")
 	}
 }
-
-//var OrderTest = common.Order{
-//	UserId:   UserTest.UserId,
-//	OrderId:  OrderId,
-//	Products: []common.Product{ProductFirstTest, ProductSecondTest},
-//}
 
 func (db *DbTest) InitOrder(order *common.Order) {
 	res := db.Create(&order)
@@ -95,19 +90,29 @@ func (db *DbTest) InitOrder(order *common.Order) {
 		log.Println(res.Error)
 	}
 }
-func (db *DbTest) InitSession(session *user.Session) {
+func (db *DbTest) InitSession(session *auth.Session) {
 	res := db.Create(&session)
 	if res.Error != nil {
 		log.Println("error init session")
 	}
 }
+func (db *DbTest) InitSoftDeleteUser(user *common.User) {
+	res1 := db.Create(&user)
+	if res1.Error != nil {
+		log.Println("error soft-delete user")
+	}
+	res2 := db.Where("user_id = ?", user.UserId).Delete(&common.User{})
+	if res2.Error != nil {
+		log.Println("error initialization soft-delete user")
+	}
+}
 func (db *DbTest) DropTableAndMigrate() {
 	db.Migrator().DropTable(&common.Order{})
 	db.Migrator().DropTable(&common.Product{})
-	db.Migrator().DropTable(&user.User{})
+	db.Migrator().DropTable(&common.User{})
 	db.AutoMigrate(&common.Order{})
 	db.AutoMigrate(&common.Product{})
-	db.AutoMigrate(&user.User{})
+	db.AutoMigrate(&common.User{})
 }
 func (db *DbTest) ClearDb() {
 	db.Exec("DELETE FROM sessions")

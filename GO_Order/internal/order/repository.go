@@ -27,7 +27,7 @@ func (repo *RepositoryOrder) GetOrder(orderId string, userId int) (*common.Order
 	res := repo.Db.
 		Model(&common.Order{}).
 		Preload("Products").
-		Where("order_id = ? AND user_id = ?", orderId, userId).
+		Where("order_id = ? AND user_id = ? AND deleted_at is null", orderId, userId).
 		First(&order)
 	if res.Error != nil {
 		return nil, res.Error

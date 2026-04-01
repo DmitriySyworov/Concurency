@@ -7,7 +7,7 @@ import (
 	"order/app/internal/common"
 	custerrors "order/app/pkg/custErrors"
 	"order/app/pkg/middleware"
-	"order/app/pkg/request"
+	"order/app/pkg/requestJs"
 	"order/app/pkg/response"
 )
 
@@ -24,11 +24,11 @@ func NewHandlerProduct(router *http.ServeMux, setting HandlerProductDep) {
 	prod := &HandlerProduct{
 		HandlerProductDep: setting,
 	}
-	router.Handle("POST /product", middleware.IsAuthID(prod.CreateProduct(), setting.Config))
-	router.Handle("PATCH /product/{hash}", middleware.IsAuthID(prod.UpdateProduct(), setting.Config))
-	router.Handle("GET /product/{hash}", middleware.IsAuthID(prod.GetProduct(), setting.Config))
-	router.Handle("GET /product", middleware.IsAuthID(prod.AllProduct(), setting.Config))
-	router.Handle("DELETE /product/{hash}", middleware.IsAuthID(prod.DeleteProduct(), setting.Config))
+	router.Handle("POST /users/products", middleware.IsAuthID(prod.CreateProduct(), setting.Config))
+	router.Handle("PATCH /users/products/{hash}", middleware.IsAuthID(prod.UpdateProduct(), setting.Config))
+	router.Handle("GET /users/products/{hash}", middleware.IsAuthID(prod.GetProduct(), setting.Config))
+	router.Handle("GET /users/products", middleware.IsAuthID(prod.AllProduct(), setting.Config))
+	router.Handle("DELETE /users/products/{hash}", middleware.IsAuthID(prod.DeleteProduct(), setting.Config))
 }
 func (h *HandlerProduct) CreateProduct() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -38,7 +38,7 @@ func (h *HandlerProduct) CreateProduct() http.HandlerFunc {
 			response.RespJs(w, h.Product, http.StatusUnauthorized)
 			return
 		}
-		body, errReq := request.RequestHandler[RequestProductCreate](r)
+		body, errReq := requestJs.RequestHandler[RequestProductCreate](r)
 		if errReq != nil {
 			h.Product.Error = errReq.Error()
 			response.RespJs(w, h.Product, http.StatusBadRequest)
@@ -66,7 +66,7 @@ func (h *HandlerProduct) UpdateProduct() http.HandlerFunc {
 			return
 		}
 
-		body, errReq := request.RequestHandler[RequestProductUpdate](r)
+		body, errReq := requestJs.RequestHandler[RequestProductUpdate](r)
 		if errReq != nil {
 			h.Product.Error = errReq.Error()
 			response.RespJs(w, h.Product, http.StatusBadRequest)

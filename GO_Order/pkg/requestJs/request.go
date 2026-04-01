@@ -1,4 +1,4 @@
-package request
+package requestJs
 
 import (
 	"encoding/json"
